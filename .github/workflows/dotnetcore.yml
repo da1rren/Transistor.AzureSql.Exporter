@@ -29,3 +29,10 @@ jobs:
     - name: Build
       working-directory: ./src
       run: dotnet build --configuration Release --no-restore
+    - name: Publish Nuget
+      id: publish_nuget
+      uses: rohith/publish-nuget@v2
+      with:
+        PROJECT_FILE_PATH: src/Transistor.AzureSql.Exporter/Transistor.AzureSql.Exporter.csproj
+        NUGET_KEY: ${{secrets.NUGET_SECRET}}
+        VERSION_STATIC: $NBGV_SemVer2
