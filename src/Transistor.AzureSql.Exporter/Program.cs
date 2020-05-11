@@ -3,14 +3,13 @@ using Microsoft.Data.SqlClient;
 using Microsoft.SqlServer.Dac;
 using System;
 using System.IO;
-using System.Threading.Tasks;
 using Transistor.Database.Exporter;
 
 namespace Transistor.Database.Tool
 {
     public static class Program
     {
-        private static async Task Main(string[] args)
+        private static void Main(string[] args)
         {
             Parser.Default.ParseArguments<Options>(args)
                 .MapResult(RetrieveToken, _ => -1);

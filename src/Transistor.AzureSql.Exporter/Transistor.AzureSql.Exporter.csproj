@@ -9,6 +9,13 @@
     <PackageOutputPath>./nupkg</PackageOutputPath>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <PackageId>Transistor.AzureSql.Exporter</PackageId>
+    <Title>AzureSql Exporter</Title>
+    <Authors>Transistor Systems</Authors>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="CommandLineParser" Version="2.8.0" />
     <PackageReference Include="Microsoft.Azure.Services.AppAuthentication" Version="1.4.0" />
