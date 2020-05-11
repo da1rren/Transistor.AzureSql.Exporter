@@ -1,5 +1,7 @@
 # Azure Database Export Tool
 
+![.NET Core](https://github.com/da1rren/Transistor.AzureSql.Exporter/workflows/.NET%20Core/badge.svg)
+
 Allows a developer to export a database from Azure Sql to their local instance without having to try figure out the sqlbacpac utility.  Supports MFA via a credential prompt.
 
 ## Usage:
