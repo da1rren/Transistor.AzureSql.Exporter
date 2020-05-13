@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Transistor.AzureSql.Exporter": {
+      "commandName": "Project",
+      "commandLineArgs": "-s s28nht80rt.database.windows.net -t . -d Geoplacer"
+    }
+  }
+}
