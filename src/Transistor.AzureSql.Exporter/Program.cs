@@ -55,6 +55,7 @@ namespace Transistor.Database.Tool
 
         private static void Import(Options options, string bacpacPath)
         {
+            DropExistingDatabase(options.TargetServer, options.Database);
             var targetBuilder = new SqlConnectionStringBuilder
             {
                 DataSource = options.TargetServer,
@@ -66,6 +67,34 @@ namespace Transistor.Database.Tool
             var bacpac = BacPackage.Load(bacpacPath);
 
             targetService.ImportBacpac(bacpac, options.Database);
+        }
+
+        private static void DropExistingDatabase(string targetServer, string targetDatabase)
+        {
+            Console.WriteLine("Dropping existing database");
+            var masterBuilder = new SqlConnectionStringBuilder
+            {
+                DataSource = targetServer,
+                InitialCatalog = "master",
+                IntegratedSecurity = true
+            };
+
+            try
+            {
+                var masterConnection = new SqlConnection(masterBuilder.ToString());
+                masterConnection.Open();
+                var command = masterConnection.CreateCommand();
+                command.CommandText = @$"
+                    ALTER DATABASE [{targetDatabase}] SET OFFLINE WITH ROLLBACK IMMEDIATE
+                    ALTER DATABASE [{targetDatabase}] SET ONLINE WITH ROLLBACK IMMEDIATE
+                    DROP DATABASE [{targetDatabase}]";
+
+                command.ExecuteNonQuery();
+            }
+            catch
+            {
+                Console.WriteLine("Could not drop existing database");
+            }
         }
     }
 }
