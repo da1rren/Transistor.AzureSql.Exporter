@@ -3,14 +3,23 @@ using Microsoft.Data.SqlClient;
 using Microsoft.SqlServer.Dac;
 using System;
 using System.IO;
+using System.Threading;
 using Transistor.Database.Exporter;
 
 namespace Transistor.Database.Tool
 {
     public static class Program
     {
+        public static CancellationTokenSource CancellationSource = new CancellationTokenSource();
+
         private static void Main(string[] args)
         {
+            Console.CancelKeyPress += (sender, eventArgs) =>
+            {
+                Console.WriteLine("Cancelation Requested");
+                CancellationSource.Cancel();
+            };
+
             Parser.Default.ParseArguments<Options>(args)
                 .MapResult(RetrieveToken, _ => -1);
         }
@@ -47,7 +56,7 @@ namespace Transistor.Database.Tool
 
             using (var file = File.Open(tempFile, FileMode.Create))
             {
-                sourceService.ExportBacpac(file, options.Database);
+                sourceService.ExportBacpac(file, options.Database, cancellationToken: CancellationSource.Token);
             }
 
             return tempFile;
@@ -66,7 +75,7 @@ namespace Transistor.Database.Tool
             var targetService = new DacServices(targetBuilder.ToString());
             var bacpac = BacPackage.Load(bacpacPath);
 
-            targetService.ImportBacpac(bacpac, options.Database);
+            targetService.ImportBacpac(bacpac, options.Database, cancellationToken: CancellationSource.Token);
         }
 
         private static void DropExistingDatabase(string targetServer, string targetDatabase)
