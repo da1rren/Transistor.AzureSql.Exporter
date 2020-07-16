@@ -22,6 +22,7 @@
     <PackageReference Include="Microsoft.Identity.Client" Version="4.15.0" />
     <PackageReference Include="Microsoft.SqlServer.DacFx" Version="150.4826.1" />
     <PackageReference Include="Microsoft.SqlServer.SqlManagementObjects" Version="160.2004021.0" />
+    <PackageReference Include="ShellProgressBar" Version="5.0.0" />
     <PackageReference Include="System.Security.Permissions" Version="4.7.0" />
   </ItemGroup>
 
