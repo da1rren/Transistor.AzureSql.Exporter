@@ -1,7 +1,9 @@
 ﻿using CommandLine;
 using Microsoft.Data.SqlClient;
 using Microsoft.SqlServer.Dac;
+using ShellProgressBar;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Threading;
 using Transistor.Database.Exporter;
@@ -51,15 +53,72 @@ namespace Transistor.Database.Tool
             };
 
             var tempFile = Path.GetTempFileName();
-
             var sourceService = new DacServices(sourceBuilder.ToString(), tokenProvider);
+            var totalTables = TotalTables(sourceBuilder.ToString(), tokenProvider.GetValidAccessToken());
+            var progress = new ProgressBar(totalTables, "Beginning Extraction", new ProgressBarOptions { ProgressBarOnBottom = true, DisplayTimeInRealTime = true, });
 
             using (var file = File.Open(tempFile, FileMode.Create))
             {
+                var children = new Dictionary<string, ChildProgressBar>();
+
+                sourceService.ProgressChanged += (data, @event) =>
+                {
+                    var dataTypeName = data.GetType().FullName;
+                    if (data != null &&
+                        (
+                            dataTypeName == "Microsoft.Data.Tools.Schema.Sql.Dac.OperationLogger" ||
+                            dataTypeName == "Microsoft.SqlServer.Dac.Operation" ||
+                            dataTypeName == "Microsoft.Data.Tools.Schema.Sql.Dac.Data.ExportBacpacStep"
+                        )
+                    )
+                    {
+                        progress.Message = @event.Message;
+                        return;
+                    }
+
+                    if (dataTypeName == "Microsoft.Data.Tools.Schema.Sql.Dac.ObjectModel.Table")
+                    {
+                        var schema = data.GetType().GetProperty("SchemaName").GetValue(data);
+                        var table = data.GetType().GetProperty("Name").GetValue(data);
+                        var key = $"{schema}.{table}";
+
+                        switch (@event.Status)
+                        {
+                            case DacOperationStatus.Pending:
+                                break;
+
+                            case DacOperationStatus.Running:
+                                children.Add(key, progress.Spawn(1, @event.Message, new ProgressBarOptions { CollapseWhenFinished = true, ProgressBarOnBottom = true, DisplayTimeInRealTime = true }));
+                                break;
+
+                            case DacOperationStatus.Completed:
+                            case DacOperationStatus.Cancelled:
+                            case DacOperationStatus.Faulted:
+                                children[key].Tick(@event.Message);
+                                children[key].Dispose();
+                                progress.Tick(@event.Message);
+                                break;
+                        }
+                    };
+                };
+
                 sourceService.ExportBacpac(file, options.Database, cancellationToken: CancellationSource.Token);
+                progress.Dispose();
             }
 
             return tempFile;
+        }
+
+        private static int TotalTables(string connectionString, string accessToken)
+        {
+            using (var connection = new SqlConnection(connectionString))
+            {
+                connection.AccessToken = accessToken;
+                connection.Open();
+                var command = connection.CreateCommand();
+                command.CommandText = "select count(*) from sys.tables";
+                return (int)command.ExecuteScalar();
+            }
         }
 
         private static void Import(Options options, string bacpacPath)
