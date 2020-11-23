@@ -54,7 +54,7 @@ namespace Transistor.Database.Tool
 
             var tempFile = Path.GetTempFileName();
             var sourceService = new DacServices(sourceBuilder.ToString(), tokenProvider);
-            var totalTables = TotalTables(sourceBuilder.ToString(), tokenProvider.GetValidAccessToken());
+            var totalTables = TotalTables(sourceBuilder.ToString(), tokenProvider.GetValidAccessToken(), options.ExcludeTemporalTables);
             var progress = new ProgressBar(totalTables, "Beginning Extraction", new ProgressBarOptions { ProgressBarOnBottom = true, DisplayTimeInRealTime = true, });
 
             using (var file = File.Open(tempFile, FileMode.Create))
@@ -102,14 +102,23 @@ namespace Transistor.Database.Tool
                     };
                 };
 
-                sourceService.ExportBacpac(file, options.Database, cancellationToken: CancellationSource.Token);
+                if (options.ExcludeTemporalTables)
+                {
+                    var tables = ListNonTemporalTables(sourceBuilder.ToString(), tokenProvider.GetValidAccessToken());
+                    sourceService.ExportBacpac(file, options.Database, tables: tables, cancellationToken: CancellationSource.Token);
+                }
+                else
+                {
+                    sourceService.ExportBacpac(file, options.Database, cancellationToken: CancellationSource.Token);
+                }
+
                 progress.Dispose();
             }
 
             return tempFile;
         }
 
-        private static int TotalTables(string connectionString, string accessToken)
+        private static int TotalTables(string connectionString, string accessToken, bool excludeTemporal)
         {
             using (var connection = new SqlConnection(connectionString))
             {
@@ -117,7 +126,33 @@ namespace Transistor.Database.Tool
                 connection.Open();
                 var command = connection.CreateCommand();
                 command.CommandText = "select count(*) from sys.tables";
+
+                if (excludeTemporal)
+                {
+                    command.CommandText += " where temporal_type != 1";
+                }
+
                 return (int)command.ExecuteScalar();
+            }
+        }
+
+        private static IEnumerable<Tuple<string, string>> ListNonTemporalTables(string connectionString, string accessToken)
+        {
+            using (var connection = new SqlConnection(connectionString))
+            {
+                connection.AccessToken = accessToken;
+                connection.Open();
+                var command = connection.CreateCommand();
+                command.CommandText = "select SCHEMA_NAME([schema_id]), [name] from sys.tables where temporal_type != 1";
+                var reader = command.ExecuteReader();
+                var tables = new List<Tuple<string, string>>();
+
+                while (reader.Read())
+                {
+                    tables.Add(new Tuple<string, string>(reader.GetString(0), reader.GetString(1)));
+                }
+
+                return tables;
             }
         }
 

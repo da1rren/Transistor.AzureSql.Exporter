@@ -15,5 +15,8 @@ namespace Transistor.Database.Exporter
 
         [Option('a', "directoryId", Required = false, HelpText = "The directory id, required if you have multiple directories assosiated with your account.")]
         public string DirectoryId { get; set; }
+
+        [Option('e', "excludeTemporalTables", Required = false, HelpText = "Excludes all temporal tables.")]
+        public bool ExcludeTemporalTables { get; set; }
     }
 }
