@@ -129,7 +129,8 @@ namespace Transistor.Database.Tool
 
                 if (excludeTemporal)
                 {
-                    command.CommandText += " where temporal_type != 1";
+                    // Exlcude sysdiagrams as its a system table
+                    command.CommandText += " where temporal_type != 1 AND name != 'sysdiagrams'";
                 }
 
                 return (int)command.ExecuteScalar();
@@ -143,7 +144,9 @@ namespace Transistor.Database.Tool
                 connection.AccessToken = accessToken;
                 connection.Open();
                 var command = connection.CreateCommand();
-                command.CommandText = "select SCHEMA_NAME([schema_id]), [name] from sys.tables where temporal_type != 1";
+
+                // Exlcude sysdiagrams as its a system table
+                command.CommandText = "select SCHEMA_NAME([schema_id]), [name] from sys.tables where temporal_type != 1 AND name != 'sysdiagrams'";
                 var reader = command.ExecuteReader();
                 var tables = new List<Tuple<string, string>>();
 
